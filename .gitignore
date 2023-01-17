@@ -4,3 +4,5 @@
 .unm
 poetry.lock
 pyproject.toml
+init.py
+background.py

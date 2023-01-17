@@ -148,18 +148,22 @@ async def open_home(message, state):
                        main_lang[f_lang]['txt_make_compet'],
                        reply_markup=keyboard)
 
+async def start_input_comp(message,state):
+  f_data = await state.get_data()
+  f_lang = f_data['lang']
+  await state.set_state(Form.input_comp)
+  print('start input competition')
+  await message.answer(main_lang[f_lang]['input_comp'])
 
 @form_router.message(
-  Form.home, )
+  Form.home,F.text.casefold() == lang_uz['txt_set_compl'].casefold())
 async def process_like_write_bots(message: Message, state: FSMContext) -> None:
-  msg = message.text
-  if (msg.casefold() == lang_ru['txt_set_compl'].casefold()
-      or msg.casefold() == lang_uz['txt_set_compl'].casefold()):
-    f_data = await state.get_data()
-    f_lang = f_data['lang']
-    await state.set_state(Form.input_comp)
-    print('start input competition')
-    await message.answer(main_lang[f_lang]['input_comp'])
+  await start_input_comp(message,state)
+
+@form_router.message(
+  Form.home,F.text.casefold() == lang_ru['txt_set_compl'].casefold())
+async def process_like_write_bots(message: Message, state: FSMContext) -> None:
+  await start_input_comp(message,state)
 
 
 @form_router.message(Form.input_comp)
@@ -341,7 +345,7 @@ async def cancel_handler(message: Message, state: FSMContext) -> None:
 
 
 @form_router.message(F.text.casefold() == "admin")
-async def command_start(message: Message, state: FSMContext) -> None:
+async def command_isAdmin(message: Message, state: FSMContext) -> None:
   print('req admin access')
   await state.set_state(Form.admin_enter)
 
@@ -398,5 +402,12 @@ async def main():
 
 
 if __name__ == "__main__":
+  logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+  asyncio.run(main())
+import sys
+
+
+def init():
+
   logging.basicConfig(level=logging.INFO, stream=sys.stdout)
   asyncio.run(main())
