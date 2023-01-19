@@ -26,68 +26,70 @@ host1 = 'ftp60.hostland.ru'
 host2 = '185.26.122.60'
 host3 = 'mysql60.hostland.ru'
 config = {
-  'user':
-  'host1676258',
-  'password':
-  '5c318172',# 78pre11523
-  'host':
-  host3,
-  'database':
-  'host1676258'
-  ,
+  'user': 'host1676258',
+  'password': '5c318172',  # 78pre11523
+  'host': host3,
+  'database': 'host1676258',
   'raise_on_warnings': True,
   'use_pure': False
 }
 
-def get_quest_link(f_num,f_id):
-    quests = f'http://happystudents.online/z{f_num}.php?id={f_id}'
-    return quests
+
+def get_quest_link(f_num, f_id):
+  quests = f'http://happystudents.online/z{f_num}.php?id={f_id}'
+  return quests
+
 
 def select_db(f_select):
   try:
-      cnx = mysql.connector.connect(**config)
-      print('succsess connect to mysql')
-      select_movies_query = f_select
-      with cnx.cursor() as cursor:
-        cursor.execute(select_movies_query)
-        result = cursor.fetchall()
-        if(len(result)<1):
-          return -1
-        for row in result:
-            print(row)
-        
-        return result
+    cnx = mysql.connector.connect(**config)
+    print('succsess connect to mysql')
+    select_movies_query = f_select
+    with cnx.cursor() as cursor:
+      cursor.execute(select_movies_query)
+      result = cursor.fetchall()
+      if (len(result) < 1):
+        return -1
+      for row in result:
+        print(row)
+
+      return result
   except mysql.connector.Error as err:
-      if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-        print("Something is wrong with your user name or password")
-      elif err.errno == errorcode.ER_BAD_DB_ERROR:
-        print("Database does not exist")
-      else:
-        print(err)
+    if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+      print("Something is wrong with your user name or password")
+    elif err.errno == errorcode.ER_BAD_DB_ERROR:
+      print("Database does not exist")
+    else:
+      print(err)
   cnx.close()
+
 
 def get_db_id(f_id):
   f_sel_name = f"SELECT user_name,ref FROM users2 WHERE user_id = {f_id}"
   result = select_db(f_sel_name)
-  return result[0]
- 
+  print(result)
+  return result
+
+
 get_db_id(49)
+
 
 def get_db_quest(f_id):
   f_sel = f"SELECT vz1,vz2,vz3,vz4,vz5 FROM users2 WHERE user_id = {f_id}"
   result = select_db(f_sel)
   print(result)
-        
-  return result
-  
 
-def get_quest_link(f_id,f_qz):
-    i = 1
-    for q_qz in f_qz:
-      if(q_qz==1):
-        return(i)
-      i=i+1
-      
+  return result
+
+
+def get_quest_link(f_id, f_qz):
+  i = 1
+  for q_qz in f_qz:
+    if (q_qz == 1):
+      return (i)
+    i = i + 1
+
+
 my_secret = os.environ['tg_token']
 BOT_TOKEN = my_secret
 bot = Bot(token=BOT_TOKEN)
@@ -173,7 +175,7 @@ async def open_home(message, state):
     [KeyboardButton(text=main_lang[f_lang]['txt_set_compl'])],
   ]
   id = f_data['ident']
-  
+
   keyboard = ReplyKeyboardMarkup(
     keyboard=kb,
     one_time_keyboard=True,
@@ -181,8 +183,8 @@ async def open_home(message, state):
     input_field_placeholder=main_lang[f_lang]['txt_home'])
   print('id what entered')
   print(id)
-  f_name = f_data['firsr_name']
-  
+  f_name = f_data['first_name']
+
   await message.answer(main_lang[f_lang]['txt_home'] + f_name + '\n' +
                        main_lang[f_lang]['txt_make_compet'],
                        reply_markup=keyboard)
@@ -346,14 +348,22 @@ async def process_read_id(message: Message, state: FSMContext) -> None:
   print('id entered: ' + message.text)
   fId = message.text
   f_name = get_db_id(fId)
-  if(f_name==-1):
+  print('get name from db')
+  print(f_name)
+  if (f_name == -1):
     print('wrong')
     await message.reply('wrong id. try again')
     return
-  f_name= f_name[2:-3]
+  #f_name = f_name[2:-3]
+  f_name = f_name[0]
+  print(f_name)
+  f_finname = f_name[2:-6]
+  f_ref = f_name[-5:-3]
   print('write name')
+  print(f_finname)
+  print(f_ref)
   await updateState(state, 'ident', fId, Form.ident)
-  await updateState(state, 'first_name',f_name,Form.first_name)
+  await updateState(state, 'first_name', f_name, Form.first_name)
 
   await open_home(message, state)
 
