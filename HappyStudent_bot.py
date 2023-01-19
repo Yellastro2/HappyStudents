@@ -24,26 +24,40 @@ from mysqlx import errorcode
 
 host1 = 'ftp60.hostland.ru'
 host2 = '185.26.122.60'
+host3 = 'mysql60.hostland.ru'
 config = {
-  'user': 'host1676258',
-  'password': '2j1967KhGLola',
-  'host': host1,
-  'database': 'host1676258',
+  'user':
+  'host1676258',
+  'password':
+  '5c318172',# 78pre11523
+  'host':
+  host3,
+  'database':
+  'host1676258'
+  ,
   'raise_on_warnings': True,
-  'use_pure': True
+  'use_pure': False
 }
+def get_db_id(f_id):
+  try:
+      cnx = mysql.connector.connect(**config)
+      print('succsess connect to mysql')
+      select_movies_query = f"SELECT user_name FROM users2 WHERE user_id = {f_id}"
+      with cnx.cursor() as cursor:
+        cursor.execute(select_movies_query)
+        result = cursor.fetchall()
+        for row in result:
+            print(row)
+        return (result)
+  except mysql.connector.Error as err:
+      if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+        print("Something is wrong with your user name or password")
+      elif err.errno == errorcode.ER_BAD_DB_ERROR:
+        print("Database does not exist")
+      else:
+        print(err)
+get_db_id(49)
 '''
-try:
-    cnx = mysql.connector.connect(**config)
-except mysql.connector.Error as err:
-  if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-    print("Something is wrong with your user name or password")
-  elif err.errno == errorcode.ER_BAD_DB_ERROR:
-    print("Database does not exist")
-  else:
-    print(err)
-
-
 try:
     cnx = connection.MySQLConnection(**config)
 except mysql.connector.Error as err:
@@ -139,31 +153,36 @@ async def open_home(message, state):
     [KeyboardButton(text=main_lang[f_lang]['txt_set_compl'])],
   ]
   id = f_data['ident']
+  
   keyboard = ReplyKeyboardMarkup(
     keyboard=kb,
     one_time_keyboard=True,
     resize_keyboard=True,
     input_field_placeholder=main_lang[f_lang]['txt_home'])
-  await message.answer(main_lang[f_lang]['txt_home'] + id + '\n' +
+  f_name = get_db_id(id)
+  await message.answer(main_lang[f_lang]['txt_home'] + f_name + '\n' +
                        main_lang[f_lang]['txt_make_compet'],
                        reply_markup=keyboard)
 
-async def start_input_comp(message,state):
+
+async def start_input_comp(message, state):
   f_data = await state.get_data()
   f_lang = f_data['lang']
   await state.set_state(Form.input_comp)
   print('start input competition')
   await message.answer(main_lang[f_lang]['input_comp'])
 
-@form_router.message(
-  Form.home,F.text.casefold() == lang_uz['txt_set_compl'].casefold())
-async def process_like_write_bots(message: Message, state: FSMContext) -> None:
-  await start_input_comp(message,state)
 
-@form_router.message(
-  Form.home,F.text.casefold() == lang_ru['txt_set_compl'].casefold())
+@form_router.message(Form.home,
+                     F.text.casefold() == lang_uz['txt_set_compl'].casefold())
 async def process_like_write_bots(message: Message, state: FSMContext) -> None:
-  await start_input_comp(message,state)
+  await start_input_comp(message, state)
+
+
+@form_router.message(Form.home,
+                     F.text.casefold() == lang_ru['txt_set_compl'].casefold())
+async def process_like_write_bots(message: Message, state: FSMContext) -> None:
+  await start_input_comp(message, state)
 
 
 @form_router.message(Form.input_comp)
