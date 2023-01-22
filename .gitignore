@@ -7,3 +7,4 @@ pyproject.toml
 init.py
 background.py
 data.txt
+data
