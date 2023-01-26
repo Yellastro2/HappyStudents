@@ -1,10 +1,9 @@
 /venv
-/.replit
-/replit.nix
+.breakpoints
 .unm
-poetry.lock
-pyproject.toml
 init.py
 background.py
 data.txt
-data
+userdata
+data/*
+__pycache__

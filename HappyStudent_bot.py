@@ -8,7 +8,6 @@ import os
 from os import getenv
 from typing import Any, Dict, Optional, Union
 
-import schedule
 from aiogram import Bot, Dispatcher, F, Router, html
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -161,7 +160,8 @@ async def updateState(state, fkey, val, step):
   try:
     f = open(fchat_id, 'r')
   except FileNotFoundError as e:
-    os.mkdir(s_datafold)
+    if not os.path.exists(s_datafold):
+      os.mkdir(s_datafold)
     f = open(fchat_id, 'x')
     f = open(fchat_id, 'r')
   fData = False
@@ -593,9 +593,8 @@ async def main():
   await dp.start_polling(bot)
 
 
-
 def init():
-  schedule.every().minute.at("30").do(AlarmCheck.check_users(), 'It is 01:00')
+  AlarmCheck.check_users()
   logging.basicConfig(level=logging.INFO, stream=sys.stdout)
   asyncio.run(main())
 

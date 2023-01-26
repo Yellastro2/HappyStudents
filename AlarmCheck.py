@@ -1,11 +1,22 @@
 from datetime import datetime
 import json
-
+import schedule
 import HappyStudent_bot
+from threading import Thread
+import asyncio
 
     
 
-async def check_users():
+
+def check_users():
+  print('start notyfy thread')
+  f_noti_thread = Thread(target = cycling)
+  
+  f_noti_thread.start()
+
+
+
+def check():
     print('start check users')
     try:
         f = open(HappyStudent_bot.s_datafile, 'r')
@@ -36,12 +47,30 @@ async def check_users():
         q_reg = q_json['reg']
         q_base_id = q_json['ident']
         q_quest = HappyStudent_bot.get_db_quest(q_base_id)
+        print(q_quest)
         if q_quest == -1 :
             print('user done all qw')
             continue
         #12.01.23
-        q_timereg = datetime.strptime(q_reg, '%m.%d.%Y')
+        q_reg = q_reg[:6]+'20'+q_reg[-2:]
+        print('reg time: '+q_reg)
+        q_timereg = datetime.strptime(q_reg, '%d.%m.%Y')
         q_dif = f_timecurent - q_timereg
         q_dif = q_dif.days
-        if q_dif.days>(q_quest-1):
-            await send_qw_notify(q_userdata['tg_id'],q_quest)
+        if q_dif.day>(q_quest-1):
+            asyncio.run(HappyStudent_bot.send_qw_notify(q_userdata['tg_id'],q_quest))
+
+def cycling():
+  print("start notify cycle")
+  f_starttime = datetime.now()
+  while True:
+    q_time = datetime.now()
+    q_period = q_time-f_starttime
+    if q_period.seconds>10:
+      f_starttime=q_time
+      check()
+
+
+
+    #schedule.every().minute.at(":30").do(check, 'It is 01:00')
+    
