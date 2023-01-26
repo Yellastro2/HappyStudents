@@ -9,6 +9,7 @@ from os import getenv
 from typing import Any, Dict, Optional, Union
 
 import schedule
+pip install -U --pre aiogram
 from aiogram import Bot, Dispatcher, F, Router, html
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -100,8 +101,8 @@ def get_quest_num(f_qz):
     i = i + 1
   return -1
 
-#my_secret = os.environ['tg_token']
-BOT_TOKEN = '5987762240:AAEJL7mIvrjhkCCsCZceMopE0d_W5T5OS-s'
+my_secret = os.environ['tg_token']
+BOT_TOKEN = my_secret
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
@@ -595,7 +596,7 @@ async def main():
 
 
 def init():
-  schedule.every().minute.at("30").do(AlarmCheck.check_users(), 'It is 01:00')
+  #schedule.every().minute.at("30").do(AlarmCheck.check_users(), 'It is 01:00')
   logging.basicConfig(level=logging.INFO, stream=sys.stdout)
   asyncio.run(main())
 
