@@ -2,19 +2,19 @@ import tkinter
 from datetime import datetime
 import json
 import schedule
-from HappyStudent_bot import s_datafold,s_datafile,get_db_quest,send_qw_notify
+#from HappyStudent_bot import s_datafold,s_datafile,get_db_quest,send_qw_notify
 from threading import Thread
 import asyncio
 
-
+'''
 def check_users():
     print('start notyfy thread')
-    '''root = tkinter.Tk()
+    root = tkinter.Tk()
     root.after(5000, check)
-    tkinter.mainloop()'''
-    '''f_noti_thread = Thread(target = cycling)
+    tkinter.mainloop()
+    f_noti_thread = Thread(target = cycling)
   
-  f_noti_thread.start()'''
+  f_noti_thread.start()
 
 
 def check2():
@@ -60,7 +60,7 @@ def check2():
         q_dif = q_dif.days
         if q_dif > (q_quest - 1):
             asyncio.run(send_qw_notify(q_userdata['tg_id'], q_quest))
-
+'''
 
 '''import queue
 
@@ -82,7 +82,7 @@ def from_main_thread_nonblocking():
             break
         callback()'''
 
-
+'''
 def cycling():
     print("start notify cycle")
     f_starttime = datetime.now()
@@ -91,6 +91,6 @@ def cycling():
         q_period = q_time - f_starttime
         if q_period.seconds > 10:
             f_starttime = q_time
-            check2()
+            check2()'''
 
         # schedule.every().minute.at(":30").do(check, 'It is 01:00')
