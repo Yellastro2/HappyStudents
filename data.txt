@@ -1,1 +1,1 @@
-{"user_list": [{"chat_id": 1173791042, "user_id": "59", "tg_name": "yellastro", "tg_id": 1173791042}]}
+{"user_list": [{"chat_id": 1173791042, "user_id": "59", "tg_name": "yellastro", "tg_id": 1173791042}], "last_noty": 28}
