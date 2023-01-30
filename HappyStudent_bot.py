@@ -5,6 +5,7 @@ import json
 import logging
 import sys
 import os
+from datetime import datetime
 from os import getenv
 from typing import Any, Dict, Optional, Union
 
@@ -24,6 +25,7 @@ from mysql.connector import (connection)
 from mysqlx import errorcode
 
 import AlarmCheck
+from HappyStudents import sharing_script
 
 s_datafile = 'data.txt'
 k_userlist = 'user_list'
@@ -106,6 +108,7 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
 lang_ru = {
+    'add_chat': 'Добавить чат для рассылки',
     'notify': '@N, прошло 24 часа, но Вы еще не выполнили Задание @q. Не хорошо.  Постарайтесь скорее выполнить. Если какие трудности, обращайтесь куратору или админу. Вы, как все другие участники, сможете справиться и выйти на доход как минимум на $2000 уже на первом месяце. И это будет только начало. Дальше все больше и больше. Не сомневайтесь.',
     'txt_lang': '🇷🇺RUS🇷🇺',
     'txt_input_id': 'Укажите свой ID от Бизнес воронки Happy Students',
@@ -121,6 +124,7 @@ lang_ru = {
     'home_alldone': 'Вы выполнили все 5 задания. Поздравляем. У Вас уже образован постоянно, автоматические расширяющийся Бизнес с возможностью дополнительной массовой рекламы любого Вашего ресурса. Ваш бизнес уже будет расширяться и количество Ваших покупателей будут постоянно расти, даже если Вы уже больше ничего не будете делать. Но мы предоставляем Вам еще программные средства, если хотите еще более ускорить темп роста Вашего бизнеса.\n Пожалуйста, получайте:\n http://happystudents.online/programs.zip '
 }
 lang_uz = {
+    'add_chat': 'Добавить чат для рассылки',
     'notify': "@N, 24 soat o’tgan boʻlsada, siz hali @N-topshiriqni bajarmadingiz. Yaxshi emas. Buni imkon qadar tezroq bajarishga harakat qiling. Agar biron bir qiyinchilik bo'lsa, kurator yoki admin bilan bog'laning. Siz, boshqa barcha ishtirokchilar kabi, birinchi oydayoq kamida 2000 AQSh dollari miqdoridagi daromadga erishishingiz mumkin. Va bu faqat boshlanishi bo'ladi. Shubha qilmang.",
     'txt_lang': '🇺🇿UZB🇺🇿',
     'txt_input_id': "Happy Students Business voronkasidagi o'z ID-ingizni kiriting",
@@ -155,6 +159,9 @@ class Form(StatesGroup):
     admin_enter = State()
     admin_post = State()
     reg = State()
+    add_chat = State()
+    add_user = State()
+    add_user_code = State()
 
 
 async def updateState(state, fkey, val, step):
@@ -218,9 +225,9 @@ async def get_chat_by_db_id(message, f_id):
     return -1
 
 
-async def send_qw_notify(f_id, f_qw,f_json):
-    f_body = lang_ru['notify'].replace('@N',f_json['first_name']).replace('@Q',str(f_qw))
-  
+async def send_qw_notify(f_id, f_qw, f_json):
+    f_body = lang_ru['notify'].replace('@N', f_json['first_name']).replace('@Q', str(f_qw))
+
     await bot.send_message(f_id, f_body)  # like this
 
 
@@ -282,13 +289,60 @@ async def open_home(message, state) -> None:
                          parse_mode='HTML',
                          reply_markup=keyboard)
 
+@form_router.message(Command(commands=["add_chat"]))
+async def add_chat(message, state) -> None:
+    await state.set_state(Form.add_chat)
+    f_data = await state.get_data()
+    try:
+        f_lang = f_data['lang']
+    except KeyError as e:
+        await command_start(message, state)
+        return
+    await message.answer(main_lang[f_lang]['add_chat'])
+
+@form_router.message(Form.add_chat)
+async def input_chat_name(message, state) -> None:
+    await state.set_state(Form.home)
+    f_chat_name = message.text
+    f_res = await sharing_script.set_chat(f_chat_name)
+    if f_res==404:
+        await message.answer('нужно добавить пользователя для рассылки!')
+
+'''
+@form_router.message(Command(commands=["add_user"]))
+async def open_home(message, state) -> None:
+    await state.set_state(Form.add_user)
+    f_data = await state.get_data()
+    try:
+        f_lang = f_data['lang']
+    except KeyError as e:
+        await command_start(message, state)
+        return
+    await message.answer('Введите номер телефона')
+
+@form_router.message(Form.add_user)
+async def input_chat_name(message, state) -> None:
+    await state.set_state(Form.add_user_code)
+
+    f_number = message.text
+    f_res = await sharing_script.new_session(f_number)
+    await state.update_data(add_user=f_number)
+    await message.answer('Введите код')
+'''
+@form_router.message(Form.add_user_code)
+async def input_chat_name(message, state) -> None:
+    f_code = message.text
+    f_data = await state.get_data()
+    f_numb = f_data['add_user']
+    f_res = await sharing_script.new_session(f_numb,f_code)
+    await message.answer('Учетная запись добавлена')
 
 async def start_input_comp(message, state):
     f_data = await state.get_data()
-    f_lang = f_data.get('lang',-1)
-    if f_lang==-1:
-      await command_start(message, state)
-      return
+    f_lang = f_data.get('lang', -1)
+    if f_lang == -1:
+        await command_start(message, state)
+        return
     id = f_data['ident']
     f_qwnum = get_db_quest(id)
     await state.set_state(Form.input_comp)
@@ -355,7 +409,7 @@ def save_data(f_data):
 async def command_start(message: Message, state: FSMContext) -> None:
     print('start comand')
     fchat_id = message.chat.id
-    message.from_user.username
+
 
     datafilename = s_datafold + str(message.chat.id) + '.json'
     print(message.chat.id)
@@ -595,7 +649,7 @@ async def process_post(message: Message, state: FSMContext) -> None:
     await bot.send_message(message.chat.id, 'Рассылка сделана')  # like this
 
 
-from datetime import datetime
+
 
 
 async def check2():
@@ -612,24 +666,24 @@ async def check2():
         return
     finally:
         f.close()
-    f_lastnoty = fData.get('last_noty',0)
+    f_lastnoty = fData.get('last_noty', 0)
     f_timecurent = datetime.now()
     if f_lastnoty == f_timecurent.day:
-      print('today already checked!!')
-      return
+        print('today already checked!!')
+        return
     if f_timecurent.hour < 7:
-      print('too early to notyfy: ',f_timecurent.hour)
-      return
+        print('too early to notyfy: ', f_timecurent.hour)
+        return
     fData['last_noty'] = f_timecurent.day
     f_jsondata = json.dumps(fData)
-    #print(fData)
+    # print(fData)
     with open(s_datafile, "w") as my_file:
         my_file.write(f_jsondata)
         my_file.close()
 
     for q_userdata in fData['user_list']:
         q_chatid = q_userdata['chat_id']
-        print('check user ',q_chatid)
+        print('check user ', q_chatid)
         try:
             f = open(s_datafold + str(q_chatid) + '.json', 'r')
         except FileNotFoundError as e:
@@ -655,8 +709,9 @@ async def check2():
         q_dif = f_timecurent - q_timereg
         q_dif = q_dif.days
         if q_dif > (q_quest - 1):
-          await send_qw_notify(q_userdata['tg_id'], q_quest,q_json)
+            await send_qw_notify(q_userdata['tg_id'], q_quest, q_json)
     fData['last_noty'] = f_timecurent.day
+
 
 async def main():
     dp.include_router(form_router)
@@ -673,4 +728,4 @@ def init():
 if __name__ == "__main__":
     init()
 
-#init()
+# init()
