@@ -50,7 +50,7 @@ def get_quest_link(f_num, f_id):
         return -1
     return quests
 
-
+print('wtf')
 def select_db(f_select):
     try:
         cnx = mysql.connector.connect(**config)
@@ -307,6 +307,7 @@ async def input_chat_name(message, state) -> None:
     f_res = await sharing_script.set_chat(f_chat_name)
     if f_res==404:
         await message.answer('нужно добавить пользователя для рассылки!')
+    else: await message.answer(f'Найдено {f_res} пользователей')
 
 '''
 @form_router.message(Command(commands=["add_user"]))
@@ -717,15 +718,20 @@ async def main():
     dp.include_router(form_router)
     await check2()
     await dp.start_polling(bot)
-    print('wtf')
+    print('Happy bot endet((')
 
-
+async def asymain():
+  await asyncio.wait([
+    main(),sharing_script.main()
+  ])
 def init():
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
-    asyncio.run(main())
+    f_looper = asyncio.get_event_loop()
+
+    f_looper.run_until_complete(asymain())
 
 
 if __name__ == "__main__":
     init()
-
-# init()
+print('wtf')
+init()

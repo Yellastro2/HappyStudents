@@ -1,1 +1,1 @@
-{"user_list": [{"chat_id": 1173791042, "user_id": "59", "tg_name": "yellastro", "tg_id": 1173791042}, {"chat_id": 5418823511, "user_id": "1", "tg_name": "blssg1991", "tg_id": 5418823511}], "last_noty": 29}
+{"user_list": [{"chat_id": 1173791042, "user_id": "59", "tg_name": "yellastro", "tg_id": 1173791042}, {"chat_id": 5418823511, "user_id": "1", "tg_name": "blssg1991", "tg_id": 5418823511}], "last_noty": 30}

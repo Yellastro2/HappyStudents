@@ -1,5 +1,24 @@
 from pathlib import Path
 
+
+import json
+import logging
+import sys
+import os
+from datetime import datetime
+from os import getenv
+from typing import Any, Dict, Optional, Union
+
+from aiogram import Bot, Dispatcher, F, Router, html
+from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.storage.base import StorageKey
+from aiogram.types import (
+    KeyboardButton,
+    Message,
+    ReplyKeyboardMarkup,
+    ReplyKeyboardRemove)
 from telethon import TelegramClient
 import asyncio
 import json
@@ -8,6 +27,10 @@ import os
 import logging
 logging.basicConfig(format='[%(levelname) 5s/%(asctime)s] %(name)s: %(message)s',
                     level=logging.WARNING)
+
+BOT_TOKEN = '5910340351:AAHW3DVyukWUOFY4VFtUxlBmrFCe4uspT-s'
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher()
 
 k_data ="data.json"
 
@@ -26,6 +49,71 @@ s_sess_dir= 'sessions/'
 s_max = 50
 m_userlist = []
 m_chat = ""
+is_spam = True
+
+form_router = Router()
+
+
+class Form(StatesGroup):
+    req_num = State()
+    req_code = State()
+
+
+
+async def asyspam():
+  await asyncio.wait([
+    test_spam()
+  ])
+
+@form_router.message(Command(commands=["run_sharing"]))
+async def run_sharing(message, state) -> None:
+    #await state.set_state(Form.req_num)
+    await message.answer('Рассылка запущена!')
+    await start_spam()
+
+
+@form_router.message(Command(commands=["stop_sharing"]))
+async def run_sharing(message, state) -> None:
+    #await state.set_state(Form.req_num)
+    global is_spam
+    is_spam = False
+    await message.answer('Рассылка Окончена!')
+
+@form_router.message(Command(commands=["start"]))
+async def start_com(message, state) -> None:
+    #await state.set_state(Form.home)
+    f_body = await check_sessions()
+    await message.answer(f_body)
+
+k_code_number = 'numb'
+k_code_code = 'code'
+@form_router.message(Command(commands=["add_acc"]))
+async def add_acc1(message, state) -> None:
+    await state.set_state(Form.req_num)
+
+    await message.answer('Введите номер аккаунта с цифрой региона (например 79109252959 для РФ)')
+
+@form_router.message(Form.req_num)
+async def add_acc2(message, state) -> None:
+  await state.update_data(req_num= message.text)
+  await state.set_state(Form.req_code)
+  f_res = await new_session(message.text)
+  if f_res == 200:
+    await message.answer('Введите код')
+  else:
+    await message.answer(f_res)
+
+
+@form_router.message(Form.req_code)
+async def add_acc3(message, state) -> None:
+  f_data = await state.get_data()
+  f_num = f_data['req_num']
+  await state.clear()
+  f_res = await new_session(f_num,message.text)
+  if f_res == 200:
+    await message.answer('Акк добавлен!')
+  else:
+    await message.answer(f_res)
 
 def get_data():
 
@@ -44,8 +132,6 @@ def get_data():
   print(f'load data:\n{m_chat}')
   f.close()
   return m_chat
-
-
 
 def set_data(f_param):
   try:
@@ -71,9 +157,9 @@ def set_data(f_param):
     my_file.close()
   print(fData)
 
-
 async def check_sessions():
   print('checking sessions')
+  global m_userlist
   signin = True
   id = 0
   while signin:
@@ -85,6 +171,9 @@ async def check_sessions():
         print(f'check {id} session')
         if os.path.exists(s_sess_dir+str(id)+'.session'):
           try:
+            if len(m_userlist)>id and await m_userlist[id].is_user_authorized():
+              id = id+1
+              continue
             cli = TelegramClient(s_sess_dir+str(id), api_id, api_hash)
             await cli.connect()
             print('cli create!')
@@ -115,8 +204,12 @@ async def check_sessions():
     except KeyboardInterrupt as e:
       print('\ncancel\n')
       signin = False
+  if len(m_userlist)<1:
+    return 'Добавьте хотя бы один аккаунт'
+  return f'Бот готов к работе. Доступно {len(m_userlist)} аккаунтов'
 m_code_cash = ''
 async def new_session(f_phone = -1,f_code = -1):
+  global m_userlist
   id = len(m_userlist)
   if f_phone == -1:
     try:
@@ -137,18 +230,23 @@ async def new_session(f_phone = -1,f_code = -1):
     except KeyboardInterrupt:
       return
   else:
-    if f_code ==-1:
-      f_cli = TelegramClient('sessions/' + str(id), api_id, api_hash)
-      await f_cli.connect()
-      m_code_cash= await f_cli.send_code_request(f_phone)
-      m_userlist.append(f_cli)
-    else:
-      f_cli = m_userlist[len(m_userlist)-1]
-      #TelegramClient('sessions/' + str(id), api_id, api_hash)
-      #await f_cli.connect()
-      await f_cli.sign_in(f_phone,f_code,phone_code_hash=None)
-      m_userlist.append(f_cli)
-    #os.remove(s_sess_dir+str(id)+'.session')
+    try:
+      if f_code ==-1:
+        f_cli = TelegramClient('sessions/' + str(id), api_id, api_hash)
+        await f_cli.connect()
+        m_code_cash= await f_cli.send_code_request(f_phone)
+        m_userlist.append(f_cli)
+        return 200
+      else:
+        f_cli = m_userlist[len(m_userlist)-1]
+        #TelegramClient('sessions/' + str(id), api_id, api_hash)
+        #await f_cli.connect()
+        await f_cli.sign_in(f_phone,f_code,phone_code_hash=None)
+        m_userlist.append(f_cli)
+        return 200
+      #os.remove(s_sess_dir+str(id)+'.session')
+    except Exception as e:
+      return e
 
 
 async def list_sessions():
@@ -192,6 +290,7 @@ async def set_chat(f_chatid = -1):
       with open(s_chat_path+f_chatid[13:]+'.json', "w+") as my_file:
         my_file.write(f_json_users)
         my_file.close()
+      return len(f_user_list)
     '''print('found somethick')
     print('find chat: '+channel.title)
     m_chat = channel.id
@@ -221,24 +320,34 @@ s_body_spam = '''Совершенно новая технология автом
 
 s_bask_path = 'basket/'
 
+async def test_spam():
+  while is_spam:
+    await asyncio.sleep(2)
+    print('foo')
+
+
+
 async def start_spam():
-  is_contin = True
+  global is_spam
+  is_spam = True
   i = 0
   f_list_chats = os.listdir(s_chat_path)
   if len(f_list_chats)<1:
     print('ERROR 404 - NO CHAT SCANNED YET')
   f_chat_path = f_list_chats[0]
   try:
-    f_targets_fl = open(f_chat_path,'r')
+    f_targets_fl = open(s_chat_path+f_chat_path,'r')
     f_targets = json.load(f_targets_fl)
     f_targets_fl.close()
   except Exception as e:
     print(e)
     print('error')
   print(f_list_chats)
-  while is_contin:
+  while is_spam:
+    print('len = ', len(m_userlist), ' i = ', i)
     #придумать ему какое то ограничение на юсера
-    if len(m_userlist)>=i+1:
+    if len(m_userlist)<=i:
+      print('len = ',len(m_userlist),' i = ', i)
       print('ERROR 505 - USERS OVER FOR TODAY')
       break
     q_user = m_userlist[i]
@@ -252,16 +361,17 @@ async def start_spam():
         return
       q_trg = f_targets[0]
       m_ch_cli = await q_user.get_entity(q_trg)
+      q_body = s_body_spam.replace('@N', f_me.username)
       await q_user.send_message(m_ch_cli, q_body)
-      q_body = s_body_spam.replace('@N',f_me.username)
-      print(f'send msg {q_body} from user {f_me.username}')
+      #q_metrg = await m_ch_cli.get_me()
+      print(f'send msg {q_body} to user {m_ch_cli.username}')
       f_targets.remove(q_trg)
-      time.sleep(600)
+      time.sleep(30)
       #target_group_entity = InputPeerChannel(m_ch_cli.id, m_ch_cli.access_hash)
       # f_peep_user = InputPeerUser(f_me.id,f_me.access_hash)
       #await q_user(JoinChannelRequest(target_group_entity))
     i = i+1
-
+  print('\nspam stopped\n')
 
 
 
@@ -319,4 +429,29 @@ async def run():
   await cycle()
 
 
-asyncio.run(run())
+#asyncio.run(run())
+
+
+async def main():
+  dp.include_router(form_router)
+  #await check2()
+  await dp.start_polling(bot)
+  print('wtf')
+
+async def asymain():
+  await asyncio.wait([
+    main()#,test_spam()
+  ])
+
+
+def init():
+  logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+  print('sharing bot started')
+  f_loop = asyncio.get_event_loop()
+  f_loop.run_until_complete(asymain())
+
+
+
+if __name__ == "__main__":
+  init()
+
